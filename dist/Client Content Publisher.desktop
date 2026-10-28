@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Client Content Publisher
+Comment=Prepare articles from a DOCX and photo; configure your own publishing API
+Exec=sh -c 'cd "$(dirname "%k")" && python3 client_content_publisher.pyz'
+Icon=text-editor
+Terminal=false
+Categories=Office;Publishing;

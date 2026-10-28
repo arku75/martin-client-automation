@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Client Content Publisher</title>
+<!-- Icono incrustado: evita que el navegador pida /favicon.ico y reciba un 404. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23145C42'/%3E%3Ctext x='16' y='23' font-family='system-ui,sans-serif' font-size='19' font-weight='700' fill='%23fafaf9' text-anchor='middle'%3EA%3C/text%3E%3C/svg%3E">
+<style>
+/* Paleta verde bosque para la interfaz editorial: verde bosque sobre neutros stone,
+   radio 0.75rem, Inter para texto y Fraunces para titulos. */
+:root{
+  --primary:158 64% 22%;
+  --primary-fg:60 9% 98%;
+  --bg:0 0% 100%;
+  --fg:24 10% 10%;
+  --card:0 0% 100%;
+  --muted:30 10% 96%;
+  --muted-fg:24 6% 45%;
+  --border:24 6% 90%;
+  --destructive:0 84% 60%;
+  --warning:38 92% 50%;
+  --radius:0.75rem;
+  --shadow:0 1px 2px 0 hsl(24 10% 10% / .05), 0 1px 3px 0 hsl(24 10% 10% / .06);
+  --shadow-lg:0 10px 30px -10px hsl(24 10% 10% / .18);
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:24 10% 8%; --fg:30 10% 94%; --card:24 9% 11%;
+    --muted:24 8% 16%; --muted-fg:24 6% 62%; --border:24 7% 20%;
+    --primary:158 52% 40%; --shadow-lg:0 10px 30px -10px hsl(0 0% 0% / .5);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:24 10% 8%; --fg:30 10% 94%; --card:24 9% 11%;
+  --muted:24 8% 16%; --muted-fg:24 6% 62%; --border:24 7% 20%;
+  --primary:158 52% 40%; --shadow-lg:0 10px 30px -10px hsl(0 0% 0% / .5);
+}
+:root[data-theme="light"]{
+  --bg:0 0% 100%; --fg:24 10% 10%; --card:0 0% 100%;
+  --muted:30 10% 96%; --muted-fg:24 6% 45%; --border:24 6% 90%;
+  --primary:158 64% 22%;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  background:hsl(var(--bg)); color:hsl(var(--fg));
+  font-size:15px; line-height:1.55; -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,.serif{font-family:Fraunces,Georgia,"Times New Roman",serif;font-weight:600}
+button,input,select,textarea{font:inherit;color:inherit}
+
+/* ── cabecera ── */
+header{
+  position:sticky; top:0; z-index:40;
+  background:hsl(var(--bg)/.85); backdrop-filter:blur(12px);
+  border-bottom:1px solid hsl(var(--border));
+}
+.hwrap{max-width:1180px;margin:0 auto;padding:.75rem 1.25rem;display:flex;align-items:center;gap:1rem}
+.logo{display:flex;align-items:center;gap:.6rem;font-family:Fraunces,serif;font-size:1.15rem;font-weight:600}
+.logo .dot{width:26px;height:26px;border-radius:8px;background:hsl(var(--primary));display:grid;place-items:center;color:hsl(var(--primary-fg));font-size:.8rem;font-weight:700;font-family:Inter,sans-serif}
+.grow{flex:1}
+.tabs{display:flex;gap:.15rem;background:hsl(var(--muted));padding:.2rem;border-radius:calc(var(--radius) - 2px)}
+.tab{padding:.35rem .8rem;border:0;background:transparent;border-radius:calc(var(--radius) - 4px);cursor:pointer;font-size:.85rem;font-weight:500;color:hsl(var(--muted-fg))}
+.tab.on{background:hsl(var(--card));color:hsl(var(--fg));box-shadow:var(--shadow)}
+
+/* ── botones ── */
+.btn{
+  display:inline-flex;align-items:center;gap:.45rem;justify-content:center;
+  padding:.5rem .9rem;border-radius:calc(var(--radius) - 2px);
+  border:1px solid transparent;background:hsl(var(--primary));color:hsl(var(--primary-fg));
+  font-weight:500;font-size:.875rem;cursor:pointer;transition:.15s;white-space:nowrap;
+}
+.btn:hover{opacity:.9}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{background:transparent;border-color:hsl(var(--border));color:hsl(var(--fg))}
+.btn.ghost:hover{background:hsl(var(--muted))}
+.btn.sm{padding:.3rem .6rem;font-size:.8rem}
+.btn.danger{background:hsl(var(--destructive))}
+
+main{max-width:1180px;margin:0 auto;padding:1.5rem 1.25rem 5rem}
+.panel{display:none} .panel.on{display:block}
+
+/* ── zona de arrastre ── */
+.drop{
+  border:2px dashed hsl(var(--border)); border-radius:var(--radius);
+  padding:3rem 1.5rem; text-align:center; background:hsl(var(--muted)/.45);
+  transition:.18s; cursor:pointer;
+}
+.drop:hover{border-color:hsl(var(--primary)/.5);background:hsl(var(--muted)/.8)}
+.drop.hot{border-color:hsl(var(--primary));background:hsl(var(--primary)/.07);transform:scale(1.005)}
+.drop h2{font-size:1.3rem;margin-bottom:.4rem}
+.drop p{color:hsl(var(--muted-fg));font-size:.9rem}
+.drop .ico{font-size:2.2rem;margin-bottom:.6rem;opacity:.85}
+/* Con artículos ya en pantalla, la zona de arrastre se aparta: lo que importa
+   pasa a ser la lista, no volver a soltar archivos. */
+.drop.mini{padding:.85rem 1.5rem;margin-bottom:1rem}
+.drop.mini .ico{font-size:1.1rem;margin:0}
+.drop.mini h2{font-size:.92rem;font-family:Inter,sans-serif;font-weight:500;margin:0}
+.drop.mini p,.drop.mini br{display:none}
+.drop.mini>*{display:inline-block;vertical-align:middle;margin-right:.5rem}
+
+/* ── tarjetas de articulo ── */
+.card{
+  background:hsl(var(--card));border:1px solid hsl(var(--border));
+  border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:1rem;overflow:hidden;
+}
+.chead{display:flex;gap:1rem;padding:1rem;align-items:flex-start}
+.thumb{
+  width:132px;height:88px;border-radius:calc(var(--radius) - 3px);object-fit:cover;
+  background:hsl(var(--muted));flex-shrink:0;border:1px solid hsl(var(--border));
+  display:grid;place-items:center;color:hsl(var(--muted-fg));font-size:.7rem;text-align:center;cursor:pointer;
+}
+.cmain{flex:1;min-width:0}
+.ctitle{font-size:1.05rem;font-family:Fraunces,serif;font-weight:600;margin-bottom:.25rem;line-height:1.3}
+.meta-line{font-size:.8rem;color:hsl(var(--muted-fg));display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
+.badge{
+  display:inline-flex;align-items:center;gap:.3rem;padding:.12rem .5rem;border-radius:99px;
+  font-size:.72rem;font-weight:500;background:hsl(var(--muted));color:hsl(var(--muted-fg));
+  border:1px solid hsl(var(--border));
+}
+.badge.ok{background:hsl(var(--primary)/.1);color:hsl(var(--primary));border-color:hsl(var(--primary)/.25)}
+.badge.warn{background:hsl(var(--warning)/.12);color:hsl(38 80% 32%);border-color:hsl(var(--warning)/.3)}
+.badge.bad{background:hsl(var(--destructive)/.1);color:hsl(var(--destructive));border-color:hsl(var(--destructive)/.25)}
+@media (prefers-color-scheme:dark){.badge.warn{color:hsl(38 90% 65%)}}
+
+.ring{--v:0;width:44px;height:44px;border-radius:50%;flex-shrink:0;display:grid;place-items:center;
+  font-size:.75rem;font-weight:600;
+  background:conic-gradient(hsl(var(--primary)) calc(var(--v)*1%), hsl(var(--muted)) 0);}
+.ring span{width:34px;height:34px;border-radius:50%;background:hsl(var(--card));display:grid;place-items:center}
+
+/* ── formulario ── */
+.cbody{border-top:1px solid hsl(var(--border));padding:1rem;display:none;background:hsl(var(--muted)/.3)}
+.cbody.on{display:block}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:.85rem}
+.f{display:flex;flex-direction:column;gap:.3rem}
+.f label{font-size:.75rem;font-weight:500;color:hsl(var(--muted-fg));display:flex;justify-content:space-between}
+.f .count{font-variant-numeric:tabular-nums}
+.f .count.over{color:hsl(var(--destructive))}
+input,select,textarea{
+  width:100%;padding:.45rem .6rem;border:1px solid hsl(var(--border));
+  border-radius:calc(var(--radius) - 4px);background:hsl(var(--card));font-size:.85rem;
+}
+input:focus,select:focus,textarea:focus{outline:2px solid hsl(var(--primary)/.4);outline-offset:-1px;border-color:hsl(var(--primary))}
+textarea{resize:vertical;min-height:70px;font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:.78rem;line-height:1.5}
+.full{grid-column:1/-1}
+
+/* Secciones plegables del editor: lo esencial siempre visible, el resto a mano. */
+.det{margin-top:.85rem;border:1px solid hsl(var(--border));border-radius:calc(var(--radius) - 3px);background:hsl(var(--card));padding:.6rem .8rem}
+.det summary{cursor:pointer;font-size:.83rem;font-weight:500;color:hsl(var(--muted-fg));user-select:none}
+.det summary:hover{color:hsl(var(--fg))}
+.det[open] summary{color:hsl(var(--fg));margin-bottom:.3rem}
+
+/* ── vista simple: lo que ve quien no es informático ── */
+/* El modo avanzado se enciende con un interruptor y saca lo técnico. */
+body:not(.expert) .only-expert{display:none !important}
+body.expert .only-simple{display:none !important}
+
+.steps{display:flex;gap:1.5rem;justify-content:center;margin:.2rem 0 1.2rem;flex-wrap:wrap}
+.steps span{font-size:.85rem;color:hsl(var(--muted-fg))}
+
+.scard{
+  background:hsl(var(--card));border:1px solid hsl(var(--border));
+  border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:.9rem;overflow:hidden;
+}
+.scard .row1{display:flex;gap:1rem;padding:1rem;align-items:center}
+.sphoto{
+  width:120px;height:80px;border-radius:calc(var(--radius) - 3px);object-fit:cover;
+  flex-shrink:0;border:2px solid hsl(var(--border));cursor:pointer;background:hsl(var(--muted));
+  display:grid;place-items:center;text-align:center;font-size:.72rem;color:hsl(var(--muted-fg));
+}
+.sphoto:hover{border-color:hsl(var(--primary))}
+.sphoto.warn{border-color:hsl(var(--warning))}
+.sphoto.bad{border-color:hsl(var(--destructive));border-style:dashed}
+.sinfo{flex:1;min-width:0}
+.sinfo h3{font-size:1.02rem;line-height:1.35;margin-bottom:.2rem}
+.sinfo .sub{font-size:.8rem;color:hsl(var(--muted-fg))}
+.state{display:inline-flex;align-items:center;gap:.35rem;font-size:.82rem;font-weight:500;margin-bottom:.15rem}
+.state.ok{color:hsl(var(--primary))}
+.state.warn{color:hsl(38 80% 35%)}
+.state.bad{color:hsl(var(--destructive))}
+@media (prefers-color-scheme:dark){.state.warn{color:hsl(38 90% 62%)}}
+.state .dot{width:8px;height:8px;border-radius:50%;background:currentColor}
+.sactions{display:flex;flex-direction:column;gap:.35rem;flex-shrink:0}
+
+/* botón grande de publicar */
+.bigbar{margin-top:1.4rem;text-align:center}
+.big{
+  width:100%;max-width:460px;padding:.95rem 1.5rem;font-size:1.05rem;font-weight:600;
+  border-radius:var(--radius);border:0;background:hsl(var(--primary));color:hsl(var(--primary-fg));
+  cursor:pointer;box-shadow:var(--shadow-lg);transition:.15s;
+}
+.big:hover:not(:disabled){transform:translateY(-1px)}
+.big:disabled{opacity:.5;cursor:not-allowed;box-shadow:none}
+.choice{display:flex;flex-direction:column;gap:.4rem;align-items:center;margin-top:.9rem}
+.choice label{display:flex;gap:.5rem;align-items:flex-start;font-size:.85rem;cursor:pointer;
+  max-width:460px;text-align:left;color:hsl(var(--muted-fg))}
+.choice input{width:auto;margin-top:.25rem;flex-shrink:0}
+.choice label:has(input:checked){color:hsl(var(--fg))}
+
+/* aviso de primera vez */
+.setup{
+  background:hsl(var(--warning)/.1);border:1px solid hsl(var(--warning)/.35);
+  border-radius:var(--radius);padding:1rem 1.2rem;margin-bottom:1.2rem;
+}
+.setup h3{font-size:1rem;margin-bottom:.5rem}
+.setup .row{gap:.5rem}
+.setup input{max-width:280px}
+
+.notes{margin:.6rem 0 0;padding:.55rem .7rem;border-radius:calc(var(--radius) - 4px);font-size:.8rem}
+.notes.warn{background:hsl(var(--warning)/.1);border:1px solid hsl(var(--warning)/.3)}
+.notes.bad{background:hsl(var(--destructive)/.08);border:1px solid hsl(var(--destructive)/.25)}
+.notes ul{margin:.2rem 0 0 1rem}
+
+/* ── barra de acciones ── */
+.bar{
+  position:sticky;bottom:0;background:hsl(var(--bg)/.9);backdrop-filter:blur(12px);
+  border-top:1px solid hsl(var(--border));padding:.75rem 1.25rem;margin:1rem -1.25rem -5rem;
+  display:flex;gap:.6rem;align-items:center;
+}
+.bar .info{font-size:.82rem;color:hsl(var(--muted-fg))}
+
+/* ── varios ── */
+.hint{font-size:.8rem;color:hsl(var(--muted-fg));margin-top:.3rem}
+.row{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
+.sec{background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:var(--radius);padding:1.1rem;margin-bottom:1rem}
+.sec h3{font-size:1rem;margin-bottom:.2rem}
+.sec .sub{font-size:.82rem;color:hsl(var(--muted-fg));margin-bottom:.9rem}
+table{width:100%;border-collapse:collapse;font-size:.84rem}
+th,td{text-align:left;padding:.5rem .6rem;border-bottom:1px solid hsl(var(--border))}
+th{font-weight:500;color:hsl(var(--muted-fg));font-size:.76rem;text-transform:uppercase;letter-spacing:.03em}
+.mono{font-family:ui-monospace,Menlo,monospace;font-size:.78rem}
+.spin{width:14px;height:14px;border:2px solid hsl(var(--primary-fg)/.3);border-top-color:hsl(var(--primary-fg));border-radius:50%;animation:sp .7s linear infinite;display:inline-block}
+@keyframes sp{to{transform:rotate(360deg)}}
+.toast{
+  position:fixed;right:1rem;bottom:1rem;z-index:99;max-width:380px;
+  background:hsl(var(--card));border:1px solid hsl(var(--border));border-left:3px solid hsl(var(--primary));
+  border-radius:calc(var(--radius) - 2px);padding:.7rem .9rem;box-shadow:var(--shadow-lg);
+  font-size:.85rem;animation:in .2s;
+}
+.toast.bad{border-left-color:hsl(var(--destructive))}
+@keyframes in{from{opacity:0;transform:translateY(6px)}}
+.empty{text-align:center;padding:2.5rem 1rem;color:hsl(var(--muted-fg));font-size:.88rem}
+/* margin:auto explícito: el reset «*{margin:0}» de arriba anula el que el
+   navegador aplica solo a los diálogos, y sin él la ventana se pega a la
+   izquierda en vez de centrarse. */
+dialog{border:1px solid hsl(var(--border));border-radius:var(--radius);background:hsl(var(--card));color:hsl(var(--fg));box-shadow:var(--shadow-lg);padding:0;width:min(1100px,94vw);margin:auto;inset:0}
+dialog.wide{width:min(1320px,96vw)}
+dialog::backdrop{background:hsl(24 10% 10% / .5);backdrop-filter:blur(2px)}
+.dhead{padding:.9rem 1.1rem;border-bottom:1px solid hsl(var(--border));display:flex;align-items:center;gap:1rem}
+.dbody{padding:1.1rem;max-height:82vh;overflow:auto}
+.prose{font-size:.9rem;line-height:1.7}
+.prose h2{font-size:1.25rem;margin:1.2rem 0 .5rem}
+.prose h3{font-size:1.05rem;margin:1rem 0 .4rem}
+.prose p{margin:.6rem 0}
+.prose ul{margin:.6rem 0 .6rem 1.2rem}
+/* La portada se ve como en el artículo publicado: ancho completo y recortada,
+   no al tamaño real del archivo. */
+.prose img{width:100%;max-height:300px;object-fit:cover;border-radius:var(--radius);display:block}
+.prose table{margin:.8rem 0}
+/* Editor a pantalla partida: escribes a la izquierda y ves el resultado a la
+   derecha, con la foto puesta. */
+.split{display:grid;grid-template-columns:1fr 1fr;gap:1rem;height:70vh}
+.split>div{overflow:auto;min-width:0}
+.split textarea{width:100%;height:100%;resize:none;font-size:.85rem;line-height:1.7;
+  background:hsl(var(--bg));border:1px solid hsl(var(--border));padding:1rem;
+  font-family:ui-monospace,Menlo,monospace}
+.split .live{border:1px solid hsl(var(--border));border-radius:calc(var(--radius) - 4px);
+  padding:1rem;background:hsl(var(--card))}
+@media(max-width:860px){.split{grid-template-columns:1fr;height:auto}
+  .split textarea{height:40vh}}
+.imgpick{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:.6rem}
+.imgpick img{width:100%;height:100px;object-fit:cover;border-radius:calc(var(--radius) - 4px);cursor:pointer;border:2px solid transparent}
+.imgpick img:hover{border-color:hsl(var(--primary))}
+</style>
+</head>
+<body>
+
+<header>
+ <div class="hwrap">
+  <div class="logo"><span class="dot">A</span> Publisher</div>
+  <div class="tabs" id="tabs">
+    <button class="tab on" data-p="publish" data-i18n="tab.publish">Publicar</button>
+    <button class="tab" data-p="site" data-i18n="tab.site">Artículos del sitio</button>
+    <button class="tab" data-p="config" data-i18n="tab.config">Configuración</button>
+    <button class="tab only-expert" data-p="doctor" data-i18n="tab.doctor">Diagnóstico</button>
+  </div>
+  <div class="grow"></div>
+  <span class="badge only-expert" id="site-badge">—</span>
+  <label class="row" style="font-size:.78rem;gap:.3rem;color:hsl(var(--muted-fg))" data-i18n-title="simple.expert_hint">
+    <input type="checkbox" id="expert" style="width:auto"> <span data-i18n="simple.expert">Modo avanzado</span>
+  </label>
+  <select id="lang" class="btn ghost sm" style="width:auto;padding:.3rem .4rem" title="Idioma"></select>
+  <button class="btn ghost sm" id="theme" data-i18n-title="theme.toggle" title="Tema claro / oscuro">◐</button>
+ </div>
+</header>
+
+<main>
+
+<!-- ══ PUBLICAR ══ -->
+<section class="panel on" id="p-publish">
+  <!-- Sale solo mientras falte la contraseña: es lo único que hay que hacer
+       antes de poder publicar. -->
+  <div class="setup" id="setup" style="display:none">
+    <h3 data-i18n="simple.first_time">Antes de empezar, escribe la contraseña de tu web</h3>
+    <div class="row">
+      <input type="password" id="quick-pass" placeholder="••••••••">
+      <button class="btn" id="quick-save" data-i18n="btn.save">Guardar</button>
+      <span id="quick-state" class="hint"></span>
+    </div>
+  </div>
+
+  <div class="steps only-simple" id="steps">
+    <span data-i18n="simple.step1">1. Arrastra los documentos y las fotos</span>
+    <span data-i18n="simple.step2">2. Comprueba que cada foto es la correcta</span>
+    <span data-i18n="simple.step3">3. Pulsa el botón verde</span>
+  </div>
+
+  <div class="drop" id="drop">
+    <div class="ico">📄🖼️</div>
+    <h2>Arrastra aquí tus .docx y tus fotos</h2>
+    <p>Suelta todo junto: el programa empareja cada artículo con su imagen.<br>
+       También puedes hacer clic para elegir archivos.</p>
+  </div>
+  <!-- Fuera de #drop a propósito: esa zona se repinta al cambiar de idioma y
+       se llevaría el input por delante. -->
+  <input type="file" id="file" multiple accept=".docx,image/*" hidden>
+
+  <div id="list"></div>
+
+  <!-- Vista simple: un botón y una decisión. -->
+  <div class="bigbar only-simple" id="bigbar" style="display:none">
+    <button class="big" id="big-go">Publicar</button>
+    <div class="choice">
+      <label><input type="radio" name="pubmode" value="draft" checked>
+        <span data-i18n="simple.draft_first">Guardar como borrador</span></label>
+      <label><input type="radio" name="pubmode" value="published">
+        <span data-i18n="simple.publish_live">Publicar en la web ahora mismo</span></label>
+    </div>
+    <div class="hint" id="big-info" style="margin-top:.6rem"></div>
+  </div>
+
+  <!-- Vista avanzada: la barra de siempre. -->
+  <div class="bar only-expert" id="bar" style="display:none">
+    <button class="btn" id="go" data-i18n="bar.publish_all">Publicar todo</button>
+    <select id="status" style="width:auto">
+      <option value="draft" data-i18n="bar.as_draft">Como borrador</option>
+      <option value="published" data-i18n="bar.as_published">Publicado ya</option>
+    </select>
+    <label class="row" style="font-size:.82rem;gap:.3rem">
+      <input type="checkbox" id="use-ai" checked style="width:auto"> <span data-i18n="bar.use_ai">Mejorar SEO con IA local</span>
+    </label>
+    <div class="grow"></div>
+    <span class="info" id="info"></span>
+  </div>
+</section>
+
+<!-- ══ ARTICULOS DEL SITIO ══ -->
+<section class="panel" id="p-site">
+  <div class="sec">
+    <h3 data-i18n="site.title">Artículos publicados en el sitio</h3>
+    <div class="sub" data-i18n="site.sub">Se leen del panel de administración.</div>
+    <button class="btn ghost sm" id="reload-site" data-i18n="site.reload">Actualizar</button>
+    <div id="site-list" style="margin-top:.9rem"><div class="empty" data-i18n="site.loading">Cargando…</div></div>
+  </div>
+</section>
+
+<!-- ══ CONFIGURACION ══ -->
+<section class="panel" id="p-config">
+  <div class="sec">
+    <h3 data-i18n="cfg.site">Sitio web</h3>
+    <div class="sub"><span data-i18n="cfg.site_sub2">Credenciales del panel. Se guardan solo en este ordenador.</span> <span class="mono" id="cfg-path"></span></div>
+    <div class="grid">
+      <div class="f"><label data-i18n="cfg.url">URL del sitio</label><input id="c-url" placeholder="https://example.invalid"></div>
+      <div class="f"><label data-i18n="cfg.api">API del panel</label><input id="c-api" placeholder="https://example.invalid/api/admin"></div>
+      <div class="f"><label data-i18n="cfg.user">Usuario</label><input id="c-user"></div>
+      <div class="f"><label data-i18n="cfg.pass">Contraseña</label><input id="c-pass" type="password"></div>
+      <div class="f only-expert"><label data-i18n="cfg.author">Autor por defecto</label><input id="c-author"></div>
+    </div>
+  </div>
+
+  <div class="sec only-expert">
+    <h3 data-i18n="cfg.images">Imágenes</h3>
+    <div class="sub" data-i18n-html="cfg.images_sub">La API acepta una URL de imagen. Configura tu propio proveedor.</div>
+    <div class="f" style="margin-bottom:.85rem">
+      <label data-i18n="cfg.backend">Dónde subir las fotos</label>
+      <select id="c-backend">
+        <option value="" data-i18n="cfg.backend_disabled">Disabled — local preview only</option>
+        <option value="cloudinary_signed" data-i18n="cfg.backend_signed">Cloudinary del sitio</option>
+        <option value="cloudinary_unsigned" data-i18n="cfg.backend_unsigned">Cloudinary con upload preset</option>
+        <option value="catbox" data-i18n="cfg.backend_catbox">catbox.moe</option>
+      </select>
+      <div class="hint" id="backend-hint"></div>
+    </div>
+    <div class="grid">
+      <div class="f"><label data-i18n="cfg.cloud">Cloudinary cloud name</label><input id="c-cloud"></div>
+      <div class="f"><label data-i18n="cfg.ckey">API key</label><input id="c-ckey"></div>
+      <div class="f"><label data-i18n="cfg.csecret">API secret</label><input id="c-csecret" type="password"></div>
+      <div class="f"><label data-i18n="cfg.cpreset">Upload preset</label><input id="c-cpreset"></div>
+      <div class="f"><label data-i18n="cfg.cfolder">Carpeta (opcional)</label><input id="c-cfolder" placeholder="clanki"></div>
+      <div class="f"><label data-i18n="cfg.ctransform">Transformación</label><input id="c-ctransform"></div>
+    </div>
+    <div class="hint" style="margin-top:.6rem" data-i18n="cfg.keys_hint">Las claves están en Cloudinary.</div>
+  </div>
+
+  <div class="sec only-expert">
+    <h3 data-i18n="cfg.ai">IA local (Ollama) — opcional</h3>
+    <div class="sub" data-i18n="cfg.ai_sub">Se usa para afinar el SEO y describir las fotos.</div>
+    <div class="grid">
+      <div class="f"><label data-i18n="cfg.ai_url">Servidor</label><input id="c-ourl"></div>
+      <div class="f"><label data-i18n="cfg.ai_model">Modelo de texto</label><select id="c-omodel"></select></div>
+      <div class="f"><label data-i18n="cfg.ai_vision">Modelo de visión</label><select id="c-ovision"></select></div>
+    </div>
+    <label class="row" style="margin-top:.7rem;font-size:.85rem;gap:.4rem">
+      <input type="checkbox" id="c-oenabled" style="width:auto"> <span data-i18n="cfg.ai_enabled">Usar la IA local</span>
+    </label>
+  </div>
+
+  <div class="sec">
+    <h3 data-i18n="cfg.lang_title">Idioma de los artículos</h3>
+    <div class="sub" data-i18n="cfg.lang_sub">En qué idioma se publican los posts.</div>
+    <div class="f" style="max-width:320px">
+      <label data-i18n="cfg.article_lang">Publicar los artículos en</label>
+      <select id="c-tlang">
+        <option value="sl">Slovenščina</option>
+        <option value="en">English</option>
+        <option value="es">Español</option>
+      </select>
+    </div>
+    <label class="row" style="font-size:.85rem;gap:.4rem;margin-top:.7rem">
+      <input type="checkbox" id="c-tenabled" style="width:auto">
+      <span data-i18n="cfg.autotranslate">Traducir automáticamente al soltar los documentos</span>
+    </label>
+  </div>
+
+  <div class="row"><button class="btn" id="save-cfg" data-i18n="cfg.save">Guardar configuración</button>
+    <button class="btn ghost only-simple" id="check-all" data-i18n="simple.check_all">Comprobar que todo funciona</button>
+    <button class="btn ghost only-expert" id="test-img" data-i18n="cfg.test_img">Probar subida de imagen</button></div>
+  <div id="check-out" style="margin-top:1rem"></div>
+</section>
+
+<!-- ══ DIAGNOSTICO ══ -->
+<section class="panel" id="p-doctor">
+  <div class="sec">
+    <h3 data-i18n="doc.title">Diagnóstico</h3>
+    <div class="sub" data-i18n="doc.sub">Comprueba todo lo necesario para publicar.</div>
+    <button class="btn ghost sm" id="run-doctor" data-i18n="doc.run">Ejecutar</button>
+    <div id="doc-out" style="margin-top:.9rem"></div>
+  </div>
+</section>
+
+</main>
+
+<dialog id="dlg">
+  <div class="dhead">
+    <strong class="serif" id="dlg-title" data-i18n="dlg.preview">Vista previa</strong>
+    <div class="grow"></div>
+    <button class="btn ghost sm" data-i18n="btn.close" onclick="document.getElementById('dlg').close()">Cerrar</button>
+  </div>
+  <div class="dbody" id="dlg-body"></div>
+</dialog>
+
+<script src="/app.js"></script>
+</body>
+</html>
