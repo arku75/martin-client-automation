@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.13'
       - name: Install headless browser
         run: |
           python -m pip install playwright
@@ -22,6 +22,7 @@ jobs:
         env:
           PUBLISHER_HOME: ${{ runner.temp }}/client-content-publisher-preview
         run: |
+          python -m py_compile app.py core.py examples/generate_demo.py
           python app.py --port 5000 --no-browser > /tmp/publisher-server.log 2>&1 &
           sleep 3
           cat /tmp/publisher-server.log
