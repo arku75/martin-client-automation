@@ -47,7 +47,7 @@ jobs:
               context = browser.new_context(viewport={"width": 1000, "height": 750}, device_scale_factor=1, locale="en-US", color_scheme="light")
               page = context.new_page()
               page.goto(url, wait_until="domcontentloaded")
-              page.wait_for_selector("#lang option")
+              page.wait_for_function("document.querySelector('#lang').options.length >= 3")
               page.select_option("#lang", "en")
               page.wait_for_function("document.documentElement.lang === 'en'")
               page.locator("#file").set_input_files([str(Path(docx).resolve()), str(Path(photo).resolve())])
