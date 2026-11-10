@@ -23,6 +23,8 @@ jobs:
           PUBLISHER_HOME: ${{ runner.temp }}/client-content-publisher-preview
         run: |
           python app.py --port 5000 --no-browser > /tmp/publisher-server.log 2>&1 &
+          sleep 3
+          cat /tmp/publisher-server.log
           python - <<'PY'
           import time
           import urllib.request
@@ -31,14 +33,14 @@ jobs:
           from playwright.sync_api import sync_playwright
           docx, photo = generate()
           url = "http://127.0.0.1:5000"
-          for attempt in range(90):
+          for attempt in range(15):
               try:
-                  urllib.request.urlopen(url + "/api/ping", timeout=2).read()
+                  urllib.request.build_opener(urllib.request.ProxyHandler({})).open(url + "/api/ping", timeout=2).read()
                   break
               except Exception:
                   time.sleep(1)
           else:
-              raise RuntimeError("The real publisher did not start")
+              raise RuntimeError("The real publisher did not start; check printed server log")
           with sync_playwright() as p:
               browser = p.chromium.launch(headless=True)
               context = browser.new_context(viewport={"width": 1000, "height": 750}, device_scale_factor=1, locale="en-US", color_scheme="light")
